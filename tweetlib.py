@@ -8,23 +8,7 @@ from tweepy import models
 from textblob import TextBlob
 import twitter_credentials
 import json
-
-GLOBAL=[]
-class listener(StreamListener):
-    def on_data(self, data):
-        try:
-            j=json.loads(data)
-            if ('text' in j):
-                t=TextBlob(j['text'])
-                GLOBAL.append([(t.lower(),t.sentiment.polarity,t.sentiment.subjectivity)])
-#                print((t.lower(),t.sentiment.polarity,t.sentiment.subjectivity))
-                print (len(GLOBAL))
-                return []
-        except tweepy.error.TweepError:
-            return []
-    def on_error(self, status):
-        print (status)
-
+import os
 
 class TwitterClient():
     def __init__(self):
@@ -56,13 +40,15 @@ For streaming and processing live tweets
     """
     def __init__(self):
         self.twitter_authenticator = TwitterAuthenticator()
-    
-    def stream_tweets(self, value):
         auth = self.twitter_authenticator.authenticate_twitter_app()
-        twitterStream = Stream(auth, TwitterListener("tweets.json"),tweet_mode='extended')
-#        print ("track="+value)
-        twitterStream.filter(track=[value],is_async=True)
+        self.twitterStream = Stream(auth, TwitterListener("tweets.json"),tweet_mode='extended')
 
+    def stream_tweets(self, value):
+#        print ("track="+value)
+        return self.twitterStream.filter(track=[value],is_async=True)
+
+    def disconnect(self):
+        return self.twitterStream.disconnect()
 
 class TwitterListener(StreamListener) :
     """
@@ -72,23 +58,26 @@ Basic Listener class that prints received tweets to Twitter
         self.fetched_tweets_filename = fetched_tweets_filename
     def process_tweets(self):
         tweets=[]
-        with open(self.fetched_tweets_filename, 'r') as tf:
-            data=tf.read()
-            try:
-                j=json.loads(data)
-                if ('text' in j):
-                    t=TextBlob(j['text'])
-                    if ((t.lower(),t.sentiment.polarity,t.sentiment.subjectivity,j['created_at']) not in tweets):
-                        tweets.append((t.lower(),t.sentiment.polarity,t.sentiment.subjectivity,j['created_at']))
-#                    print (len(tweets))
-            except json.decoder.JSONDecodeError:
-                pass
-
+        try: 
+            with open(self.fetched_tweets_filename, 'r') as tf:
+                data=tf.read()
+                try:
+                    j=json.loads(data)
+                    if ('text' in j):
+                        t=TextBlob(j['text'])
+                        if ((t.lower(),t.sentiment.polarity,t.sentiment.subjectivity,j['created_at']) not in tweets):
+                            tweets.append((t.lower(),t.sentiment.polarity,t.sentiment.subjectivity,j['created_at']))
+            #                    print (len(tweets))
+                except json.decoder.JSONDecodeError:
+                    pass
+#            os.remove(self.fetched_tweets_filename)
+        except FileNotFoundError:
+            pass
         return tweets
 
     def on_data(self, data):
         try:
-#            print(data)
+#            print("****"+data)
             with open(self.fetched_tweets_filename, 'w') as tf:
                 tf.write(data)
             return True
