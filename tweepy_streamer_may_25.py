@@ -109,12 +109,13 @@ def update_pie_chart(sentiment_term,ninterval):
     global globt
     global inct
     global posnegsentiment
-    if (len(inct)>0):
-        for g in inct:
+    posnegsentiment=[0,0,0]
+    if (len(globt)>0):
+        for g in globt:
             if (len(g)>0):
-                if (g[1]>THRESH):
+                if (g[0][1]>THRESH):
                     posnegsentiment[0]+=1
-                elif (g[1]<-THRESH):
+                elif (g[0][1]<-THRESH):
                     posnegsentiment[1]+=1
                 else:
                     posnegsentiment[2]+=1
